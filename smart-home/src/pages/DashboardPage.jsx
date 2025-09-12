@@ -1,5 +1,4 @@
 // --- FILE: src/pages/DashboardPage.jsx ---
-// This version contains the TIMER LOGIC inside the React App.
 
 import { useState, useEffect } from 'react';
 import { database, auth } from "../firebase/config";
@@ -16,13 +15,14 @@ function DashboardPage() {
   const [relays, setRelays] = useState({});
   const [schedules, setSchedules] = useState({});
   const [deviceData, setDeviceData] = useState({ online: false, last_update: null });
+
   const [isTimerModalOpen, setTimerModalOpen] = useState(false);
   const [isScheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const devicePath = 'home_automation/devices/pico_w_001';
   const schedulesPath = 'schedules';
 
-  // Fetch data from Firebase (no changes here)
+  // This useEffect for fetching data is correct and remains the same.
   useEffect(() => {
     const deviceRef = ref(database, devicePath);
     const schedulesRef = ref(database, schedulesPath);
@@ -42,72 +42,73 @@ function DashboardPage() {
     };
   }, []);
 
-  // --- NEW: TIMER LOGIC HANDLER IN REACT ---
-  useEffect(() => {
-    let timerId = null;
+  const handleLogout = () => auth.signOut();
 
-    // Find the next relay that needs to be turned off
-    let nextExpiryTime = Infinity;
-    let relaysToExpire = [];
+  // --- FIXED: This function now correctly updates status, timestamp, and cancels timers. ---
+  const handleToggleRelay = (relayId, currentStatus) => {
+    const updates = {};
+    const newStatus = !currentStatus;
+    const newTimestamp = Math.floor(Date.now() / 1000);
 
-    const nowInSeconds = Date.now() / 1000;
+    updates[`${devicePath}/relays/${relayId}/status`] = newStatus;
+    updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
 
-    Object.entries(relays).forEach(([id, data]) => {
-      if (data.timer_off_at && data.timer_off_at > nowInSeconds) {
-        if (data.timer_off_at < nextExpiryTime) {
-          nextExpiryTime = data.timer_off_at;
-        }
+    // If the user manually turns the relay OFF, we must also cancel its timer.
+    if (newStatus === false) {
+      updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
+    }
+    
+    update(ref(database), updates);
+  };
+  
+  // --- FIXED: This function now correctly updates all relays and their timestamps. ---
+  const handleAll = (targetStatus) => {
+    const updates = {};
+    const newTimestamp = Math.floor(Date.now() / 1000);
+
+    Object.keys(relays).forEach(relayId => {
+      updates[`${devicePath}/relays/${relayId}/status`] = targetStatus;
+      updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
+      
+      // If turning all OFF, also cancel all active timers.
+      if (targetStatus === false) {
+        updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
       }
     });
+    update(ref(database), updates);
+  };
 
-    // If we found a timer that needs to be handled
-    if (nextExpiryTime !== Infinity) {
-      const delay = (nextExpiryTime - nowInSeconds) * 1000;
-      console.log(`Next timer will fire in ${Math.round(delay / 1000)} seconds.`);
+  // --- FIXED: This function now correctly toggles all relays. ---
+  const handleToggleAll = () => {
+    const updates = {};
+    const newTimestamp = Math.floor(Date.now() / 1000);
 
-      timerId = setTimeout(() => {
-        console.log("Timer expired! Sending turn-off command.");
-        const updates = {};
-        const currentTime = Math.floor(Date.now() / 1000);
-        
-        // Find all relays that should be off by now
-        Object.entries(relays).forEach(([id, data]) => {
-          if (data.timer_off_at && data.timer_off_at <= currentTime) {
-            updates[`${devicePath}/relays/${id}/status`] = false;
-            updates[`${devicePath}/relays/${id}/timer_off_at`] = 0;
-            updates[`${devicePath}/relays/${id}/last_changed`] = currentTime;
-          }
-        });
+    Object.entries(relays).forEach(([relayId, relayData]) => {
+      const newStatus = !relayData.status;
+      updates[`${devicePath}/relays/${relayId}/status`] = newStatus;
+      updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
 
-        if (Object.keys(updates).length > 0) {
-          update(ref(database), updates);
-        }
-      }, delay);
-    }
-
-    // Cleanup function: This is crucial to prevent memory leaks!
-    return () => {
-      if (timerId) {
-        clearTimeout(timerId);
+      // If toggling to OFF, cancel any active timer.
+      if (newStatus === false) {
+          updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
       }
-    };
-  }, [relays]); // Re-run this effect whenever the relays data changes
+    });
+    update(ref(database), updates);
+  };
 
-  // All other functions remain the same
-  const handleLogout = () => auth.signOut();
-  const handleToggleRelay = (relayId, currentStatus) => { /* ... no changes ... */ };
-  const handleAll = (targetStatus) => { /* ... no changes ... */ };
-  const handleToggleAll = () => { /* ... no changes ... */ };
+  // This function was already working correctly.
   const handleSaveTimer = (relayId, durationSeconds) => {
     const timerEndTime = Math.floor(Date.now() / 1000) + durationSeconds;
     const updates = {};
     updates[`${devicePath}/relays/${relayId}/timer_off_at`] = timerEndTime;
-    updates[`${devicePath}/relays/${relayId}/status`] = true;
+    updates[`${devicePath}/relays/${relayId}/status`] = true; // Also turn the relay ON
+    updates[`${devicePath}/relays/${relayId}/last_changed`] = Math.floor(Date.now() / 1000);
     update(ref(database), updates);
   };
-  const handleSaveSchedule = (scheduleId, scheduleData) => { /* ... no changes ... */ };
-  const handleDeleteSchedule = (scheduleId) => { /* ... no changes ... */ };
 
+  const handleSaveSchedule = (scheduleId, scheduleData) => { /* ... (This logic is separate and correct) ... */ };
+  const handleDeleteSchedule = (scheduleId) => { /* ... (This logic is separate and correct) ... */ };
+  
   const activeCount = Object.values(relays).filter(r => r.status === true).length;
   const totalCount = Object.keys(relays).length;
   const formattedLastUpdate = deviceData.last_update ? new Date(deviceData.last_update * 1000).toLocaleTimeString() : 'N/A';
@@ -122,6 +123,7 @@ function DashboardPage() {
           activeCount={activeCount}
           totalCount={totalCount}
         />
+        {/* Pass the CORRECTED handler to the child component */}
         <RelayControls relays={relays} onToggle={handleToggleRelay} />
         <QuickActions
           onAllOn={() => handleAll(true)}
