@@ -10,6 +10,6 @@ export default {
     extend: {},
   },
   plugins: [
-    require('tailwind-scrollbar-hide') // <-- ADD THIS LINE
+    require('tailwind-scrollbar'), // <-- This line is correct
   ],
 }
