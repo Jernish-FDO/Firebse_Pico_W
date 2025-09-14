@@ -1,8 +1,8 @@
-// --- FILE: src/pages/DashboardPage.jsx (Corrected) ---
+// --- FILE: src/pages/DashboardPage.jsx ---
 
 import { useState, useEffect } from 'react';
 import { database, auth } from "../firebase/config";
-import { ref, onValue, update } from "firebase/database";
+import { ref, onValue, update, set, push, remove } from "firebase/database";
 
 import Header from '../components/Header';
 import DeviceStatus from '../components/DeviceStatus';
@@ -22,10 +22,11 @@ function DashboardPage() {
   const devicePath = 'home_automation/devices/pico_w_001';
   const schedulesPath = 'schedules';
 
-  // This useEffect for fetching data is correct and remains the same.
+  // Effect to fetch real-time data from Firebase
   useEffect(() => {
     const deviceRef = ref(database, devicePath);
     const schedulesRef = ref(database, schedulesPath);
+    
     const unsubDevice = onValue(deviceRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -33,74 +34,61 @@ function DashboardPage() {
         setDeviceData({ online: data.online, last_update: data.last_update });
       }
     });
+
     const unsubSchedules = onValue(schedulesRef, (snapshot) => {
       setSchedules(snapshot.val() || {});
     });
+
     return () => {
       unsubDevice();
       unsubSchedules();
     };
   }, []);
-  
-  // This new useEffect handles turning off relays when their timers expire.
+
+  // Effect to handle automatic turn-off for expired timers
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Math.floor(Date.now() / 1000);
       const updates = {};
       let needsUpdate = false;
 
-      // Check each relay for an expired timer
       for (const relayId in relays) {
         const relay = relays[relayId];
-        // Check if the timer is set, the relay is ON, and the time has passed
         if (relay.status === true && relay.timer_off_at > 0 && relay.timer_off_at <= now) {
-          console.log(`Timer expired for ${relayId}. Turning it off.`);
           updates[`${devicePath}/relays/${relayId}/status`] = false;
-          updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0; // Reset the timer
+          updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
           needsUpdate = true;
         }
       }
 
-      // If any timers have expired, send a single update to Firebase
       if (needsUpdate) {
         update(ref(database), updates);
       }
-    }, 1000); // Check every second
+    }, 1000);
 
-    // Cleanup function to clear the interval when the component unmounts
     return () => clearInterval(interval);
-  }, [relays]); // Rerun this effect if the relays object changes
+  }, [relays]);
 
 
   const handleLogout = () => auth.signOut();
 
-  // --- FIXED: This function now correctly updates status, timestamp, and cancels timers. ---
   const handleToggleRelay = (relayId, currentStatus) => {
     const updates = {};
     const newStatus = !currentStatus;
-    const newTimestamp = Math.floor(Date.now() / 1000);
-
     updates[`${devicePath}/relays/${relayId}/status`] = newStatus;
-    updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
-
-    // If the user manually turns the relay OFF, we must also cancel its timer.
+    updates[`${devicePath}/relays/${relayId}/last_changed`] = Math.floor(Date.now() / 1000);
     if (newStatus === false) {
       updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
     }
-    
     update(ref(database), updates);
   };
   
-  // --- FIXED: This function now correctly updates all relays and their timestamps. ---
   const handleAll = (targetStatus) => {
     const updates = {};
     const newTimestamp = Math.floor(Date.now() / 1000);
-
     Object.keys(relays).forEach(relayId => {
       updates[`${devicePath}/relays/${relayId}/status`] = targetStatus;
       updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
-      
-      // If turning all OFF, also cancel all active timers.
       if (targetStatus === false) {
         updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
       }
@@ -108,17 +96,13 @@ function DashboardPage() {
     update(ref(database), updates);
   };
 
-  // --- FIXED: This function now correctly toggles all relays. ---
   const handleToggleAll = () => {
     const updates = {};
     const newTimestamp = Math.floor(Date.now() / 1000);
-
     Object.entries(relays).forEach(([relayId, relayData]) => {
       const newStatus = !relayData.status;
       updates[`${devicePath}/relays/${relayId}/status`] = newStatus;
       updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
-
-      // If toggling to OFF, cancel any active timer.
       if (newStatus === false) {
           updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0;
       }
@@ -126,18 +110,54 @@ function DashboardPage() {
     update(ref(database), updates);
   };
 
-  // This function was already working correctly.
-  const handleSaveTimer = (relayId, durationSeconds) => {
+  const handleSaveTimer = (relayIds, durationSeconds) => {
     const timerEndTime = Math.floor(Date.now() / 1000) + durationSeconds;
+    const newTimestamp = Math.floor(Date.now() / 1000);
     const updates = {};
-    updates[`${devicePath}/relays/${relayId}/timer_off_at`] = timerEndTime;
-    updates[`${devicePath}/relays/${relayId}/status`] = true; // Also turn the relay ON
-    updates[`${devicePath}/relays/${relayId}/last_changed`] = Math.floor(Date.now() / 1000);
+    relayIds.forEach(relayId => {
+      updates[`${devicePath}/relays/${relayId}/status`] = true; 
+      updates[`${devicePath}/relays/${relayId}/timer_off_at`] = timerEndTime;
+      updates[`${devicePath}/relays/${relayId}/last_changed`] = newTimestamp;
+    });
     update(ref(database), updates);
   };
 
-  const handleSaveSchedule = (scheduleId, scheduleData) => { /* ... (This logic is separate and correct) ... */ };
-  const handleDeleteSchedule = (scheduleId) => { /* ... (This logic is separate and correct) ... */ };
+  // --- START OF NEWLY IMPLEMENTED LOGIC ---
+
+  /**
+   * Saves or updates a schedule in Firebase.
+   * @param {string | null} scheduleId - The ID of the schedule to update, or null to create a new one.
+   * @param {object} scheduleData - The schedule data to save.
+   */
+  const handleSaveSchedule = (scheduleId, scheduleData) => {
+    if (scheduleId) {
+      // If an ID exists, it's an update.
+      console.log(`Updating schedule: ${scheduleId}`);
+      const scheduleRef = ref(database, `${schedulesPath}/${scheduleId}`);
+      set(scheduleRef, scheduleData);
+    } else {
+      // If no ID, it's a new schedule.
+      console.log("Creating new schedule...");
+      const schedulesRef = ref(database, schedulesPath);
+      push(schedulesRef, scheduleData);
+    }
+  };
+
+  /**
+   * Deletes a schedule from Firebase.
+   * @param {string} scheduleId - The ID of the schedule to delete.
+   */
+  const handleDeleteSchedule = (scheduleId) => {
+    if (!scheduleId) {
+      console.error("Delete failed: No schedule ID provided.");
+      return;
+    }
+    console.log(`Deleting schedule: ${scheduleId}`);
+    const scheduleRef = ref(database, `${schedulesPath}/${scheduleId}`);
+    remove(scheduleRef);
+  };
+  
+  // --- END OF NEWLY IMPLEMENTED LOGIC ---
   
   const activeCount = Object.values(relays).filter(r => r.status === true).length;
   const totalCount = Object.keys(relays).length;
@@ -153,7 +173,6 @@ function DashboardPage() {
           activeCount={activeCount}
           totalCount={totalCount}
         />
-        {/* Pass the CORRECTED handler to the child component */}
         <RelayControls relays={relays} onToggle={handleToggleRelay} />
         <QuickActions
           onAllOn={() => handleAll(true)}

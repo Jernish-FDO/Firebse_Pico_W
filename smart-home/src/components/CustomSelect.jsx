@@ -28,7 +28,8 @@ function CustomSelect({ options, value, onChange, placeholder = "Select an optio
       </button>
 
       {isOpen && (
-        <ul className="absolute z-10 w-full ... scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-500 hover:scrollbar-thumb-blue-500">
+        // --- THIS IS THE UPDATED LINE ---
+        <ul className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg p-1 max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-500">
           {options.map((option) => (
             <li
               key={option.value}
@@ -36,7 +37,8 @@ function CustomSelect({ options, value, onChange, placeholder = "Select an optio
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className="px-4 py-2 hover:bg-blue-500 cursor-pointer text-white"
+              // Also updated list item for better padding and rounded corners on hover
+              className="px-3 py-2 hover:bg-blue-600 cursor-pointer text-white rounded-md transition-colors"
             >
               {option.label}
             </li>

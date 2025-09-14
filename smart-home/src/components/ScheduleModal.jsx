@@ -1,6 +1,5 @@
 // --- FILE: src/components/ScheduleModal.jsx ---
 
-// (This is a complex component, provided for completeness)
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
@@ -11,53 +10,99 @@ const daysOfWeek = [
 ];
 
 function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules }) {
-  const [selectedRelay, setSelectedRelay] = useState('');
+  // --- State now holds an array of selected relay IDs ---
+  const [selectedRelays, setSelectedRelays] = useState([]);
+  
   const [onTime, setOnTime] = useState('07:00');
   const [offTime, setOffTime] = useState('22:00');
   const [days, setDays] = useState([]);
   const [isEnabled, setIsEnabled] = useState(true);
-  const [existingScheduleId, setExistingScheduleId] = useState(null);
 
+  // --- Logic for Select/Deselect All buttons ---
+  const areAllRelaysSelected = selectedRelays.length > 0 && selectedRelays.length === Object.keys(relays).length;
+  const areAllDaysSelected = days.length === daysOfWeek.length;
+
+  const handleToggleSelectAllRelays = () => {
+    if (areAllRelaysSelected) {
+      setSelectedRelays([]);
+    } else {
+      setSelectedRelays(Object.keys(relays));
+    }
+  };
+
+  const handleToggleSelectAllDays = () => {
+    if (areAllDaysSelected) {
+      setDays([]);
+    } else {
+      setDays(daysOfWeek.map(day => day.id));
+    }
+  };
+  
+  // --- This effect now smartly loads a schedule ONLY if a single relay is selected ---
   useEffect(() => {
-    if (selectedRelay) {
-      const existing = Object.entries(schedules).find(([, s]) => s.relayId === selectedRelay);
+    // If one relay is selected, try to load its existing schedule
+    if (selectedRelays.length === 1) {
+      const singleRelayId = selectedRelays[0];
+      const existing = Object.entries(schedules).find(([, s]) => s.relayId === singleRelayId);
       if (existing) {
-        const [id, data] = existing;
+        const [, data] = existing;
         setOnTime(data.onTime);
         setOffTime(data.offTime);
         setDays(data.days || []);
         setIsEnabled(data.enabled);
-        setExistingScheduleId(id);
       } else {
         // Reset form if no schedule exists for the selected relay
-        setOnTime('07:00');
-        setOffTime('22:00');
-        setDays([]);
-        setIsEnabled(true);
-        setExistingScheduleId(null);
+        resetForm();
       }
+    } else {
+      // If 0 or more than 1 relays are selected, reset the form
+      resetForm();
     }
-  }, [selectedRelay, schedules]);
+  }, [selectedRelays, schedules]);
 
   if (!isOpen) return null;
+  
+  const resetForm = () => {
+    setOnTime('07:00');
+    setOffTime('22:00');
+    setDays([]);
+    setIsEnabled(true);
+  };
+  
+  const handleToggleRelaySelection = (relayId) => {
+    setSelectedRelays((prev) => 
+      prev.includes(relayId) ? prev.filter((id) => id !== relayId) : [...prev, relayId]
+    );
+  };
 
   const handleDayToggle = (dayId) => {
     setDays(prev => prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId]);
   };
 
   const handleSave = () => {
-    if (!selectedRelay) {
-      alert('Please select a relay.');
+    if (selectedRelays.length === 0) {
+      alert('Please select at least one relay.');
       return;
     }
-    const scheduleData = { relayId: selectedRelay, onTime, offTime, days, enabled: isEnabled };
-    onSave(existingScheduleId, scheduleData);
+    const scheduleData = { onTime, offTime, days, enabled: isEnabled };
+    
+    // Loop through all selected relays and save the schedule for each one
+    selectedRelays.forEach(relayId => {
+      const existing = Object.entries(schedules).find(([, s]) => s.relayId === relayId);
+      const existingScheduleId = existing ? existing[0] : null;
+      // Add the relayId to the data being saved
+      onSave(existingScheduleId, { ...scheduleData, relayId: relayId });
+    });
+
     onClose();
   };
   
   const handleDelete = () => {
-    if (existingScheduleId) {
-      onDelete(existingScheduleId);
+    if (selectedRelays.length === 1) {
+      const existing = Object.entries(schedules).find(([, s]) => s.relayId === selectedRelays[0]);
+      if (existing) {
+        onDelete(existing[0]);
+      }
     }
     onClose();
   };
@@ -74,11 +119,28 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
         </h2>
 
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-slate-300">Select Relay</label>
-          <select value={selectedRelay} onChange={(e) => setSelectedRelay(e.target.value)} className="w-full p-3 bg-slate-700 rounded-lg">
-            <option value="" disabled>Choose a relay...</option>
-            {Object.entries(relays).map(([id, data]) => <option key={id} value={id}>{data.name}</option>)}
-          </select>
+          {/* --- UPDATED RELAY SELECTOR --- */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-slate-300">Select Relays</label>
+              <button onClick={handleToggleSelectAllRelays} className="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded-md transition-colors">
+                {areAllRelaysSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div className="max-h-32 overflow-y-auto bg-slate-900/50 p-3 rounded-lg border border-slate-700 space-y-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+              {Object.entries(relays).map(([id, data]) => (
+                <label key={id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedRelays.includes(id)}
+                    onChange={() => handleToggleRelaySelection(id)}
+                    className="h-5 w-5 bg-slate-600 border-slate-500 rounded text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                  />
+                  <span className="text-white">{data.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -92,10 +154,15 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Repeat on</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-slate-300">Repeat on</label>
+              <button type="button" onClick={handleToggleSelectAllDays} className="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded-md transition-colors">
+                {areAllDaysSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
             <div className="flex justify-between">
               {daysOfWeek.map(day => (
-                <button key={day.id} onClick={() => handleDayToggle(day.id)} className={`w-10 h-10 rounded-full font-bold ${days.includes(day.id) ? 'bg-blue-500 text-white' : 'bg-slate-600 text-slate-300'}`}>
+                <button key={day.id} type="button" onClick={() => handleDayToggle(day.id)} className={`w-10 h-10 rounded-full font-bold transition-colors ${days.includes(day.id) ? 'bg-blue-500 text-white' : 'bg-slate-600 text-slate-300'}`}>
                   {day.label}
                 </button>
               ))}
@@ -104,13 +171,14 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
 
           <div className="flex justify-between items-center pt-2">
             <label className="font-medium text-slate-300">Enable Schedule</label>
-            <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="w-6 h-6" />
+            <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="form-checkbox h-5 w-5 bg-slate-600 border-slate-500 rounded text-blue-500 focus:ring-blue-500" />
           </div>
         </div>
 
         <div className="mt-8 flex justify-between">
           <div>
-            {existingScheduleId && <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-semibold">Delete</button>}
+            {/* Only show delete button if exactly one relay is selected */}
+            {selectedRelays.length === 1 && <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-semibold">Delete</button>}
           </div>
           <div className="space-x-4">
             <button onClick={onClose} className="bg-slate-600 hover:bg-slate-700 px-6 py-2 rounded-lg font-semibold">Cancel</button>
