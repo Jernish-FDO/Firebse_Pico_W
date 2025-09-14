@@ -2,7 +2,8 @@
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPowerOff } from '@fortawesome/free-solid-svg-icons';
-import CountdownTimer from './CountdownTimer'; // Import the new component
+import CountdownTimer from './CountdownTimer';
+import { formatAs12Hour } from '../utils/formatTime'; // Import the new helper
 
 const ToggleSwitch = ({ isOn, onToggle }) => (
   <button onClick={onToggle} className={`relative inline-flex items-center h-7 w-14 rounded-full transition-colors duration-300 focus:outline-none ${isOn ? 'bg-green-500' : 'bg-slate-600'}`}>
@@ -12,14 +13,9 @@ const ToggleSwitch = ({ isOn, onToggle }) => (
 
 function RelayCard({ id, name, relayId, status, lastChanged, timer_off_at, onToggle }) {
   const isOn = status === true;
-
-  // A timer is active if the timestamp is valid and in the future
   const isTimerSet = timer_off_at && timer_off_at > (Date.now() / 1000);
 
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    return new Date(timestamp * 1000).toLocaleTimeString();
-  };
+  // The local formatTimestamp function is no longer needed.
 
   return (
     <div className="bg-slate-700 rounded-lg p-4 flex flex-col space-y-3 shadow-md">
@@ -36,14 +32,13 @@ function RelayCard({ id, name, relayId, status, lastChanged, timer_off_at, onTog
         <ToggleSwitch isOn={isOn} onToggle={() => onToggle(id, status)} />
       </div>
 
-      {/* --- THIS IS THE UPDATED PART --- */}
-      {/* Conditionally render the countdown timer or the last changed text */}
       <div>
         {isTimerSet ? (
           <CountdownTimer expiryTimestamp={timer_off_at} />
         ) : (
           <p className="text-xs text-slate-400">
-            Last changed: {formatTimestamp(lastChanged)}
+            {/* Use the new helper function here */}
+            Last changed: {formatAs12Hour(lastChanged)}
           </p>
         )}
       </div>
