@@ -1,8 +1,8 @@
-// --- FILE: src/pages/DashboardPage.jsx ---
+// --- FILE: src/pages/DashboardPage.jsx (Corrected) ---
 
 import { useState, useEffect } from 'react';
 import { database, auth } from "../firebase/config";
-import { ref, onValue, update, set, push, remove } from "firebase/database";
+import { ref, onValue, update } from "firebase/database";
 
 import Header from '../components/Header';
 import DeviceStatus from '../components/DeviceStatus';
@@ -41,6 +41,36 @@ function DashboardPage() {
       unsubSchedules();
     };
   }, []);
+  
+  // This new useEffect handles turning off relays when their timers expire.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Math.floor(Date.now() / 1000);
+      const updates = {};
+      let needsUpdate = false;
+
+      // Check each relay for an expired timer
+      for (const relayId in relays) {
+        const relay = relays[relayId];
+        // Check if the timer is set, the relay is ON, and the time has passed
+        if (relay.status === true && relay.timer_off_at > 0 && relay.timer_off_at <= now) {
+          console.log(`Timer expired for ${relayId}. Turning it off.`);
+          updates[`${devicePath}/relays/${relayId}/status`] = false;
+          updates[`${devicePath}/relays/${relayId}/timer_off_at`] = 0; // Reset the timer
+          needsUpdate = true;
+        }
+      }
+
+      // If any timers have expired, send a single update to Firebase
+      if (needsUpdate) {
+        update(ref(database), updates);
+      }
+    }, 1000); // Check every second
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => clearInterval(interval);
+  }, [relays]); // Rerun this effect if the relays object changes
+
 
   const handleLogout = () => auth.signOut();
 
