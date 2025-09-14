@@ -44,7 +44,6 @@ function TimerModal({ isOpen, onClose, onSave, relays }) {
     onClose();
   };
   
-  // --- THIS IS THE CORRECTED LINE ---
   const handleClose = () => {
     setSelectedRelays([]);
     onClose();
@@ -85,6 +84,7 @@ function TimerModal({ isOpen, onClose, onSave, relays }) {
             </div>
           </div>
           
+          {/* --- THIS IS THE UPDATED SECTION --- */}
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-300">Turn OFF After</label>
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -122,6 +122,7 @@ function TimerModal({ isOpen, onClose, onSave, relays }) {
               </div>
             </div>
           </div>
+          {/* --- END OF UPDATED SECTION --- */}
 
         </div>
 
