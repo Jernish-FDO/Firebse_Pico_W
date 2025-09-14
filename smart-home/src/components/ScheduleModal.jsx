@@ -10,7 +10,6 @@ const daysOfWeek = [
 ];
 
 function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules }) {
-  // --- State now holds an array of selected relay IDs ---
   const [selectedRelays, setSelectedRelays] = useState([]);
   
   const [onTime, setOnTime] = useState('07:00');
@@ -18,7 +17,15 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
   const [days, setDays] = useState([]);
   const [isEnabled, setIsEnabled] = useState(true);
 
-  // --- Logic for Select/Deselect All buttons ---
+  // --- THIS FUNCTION HAS BEEN MOVED UP ---
+  const resetForm = () => {
+    setOnTime('07:00');
+    setOffTime('22:00');
+    setDays([]);
+    setIsEnabled(true);
+  };
+  // --- END OF MOVE ---
+
   const areAllRelaysSelected = selectedRelays.length > 0 && selectedRelays.length === Object.keys(relays).length;
   const areAllDaysSelected = days.length === daysOfWeek.length;
 
@@ -38,9 +45,7 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
     }
   };
   
-  // --- This effect now smartly loads a schedule ONLY if a single relay is selected ---
   useEffect(() => {
-    // If one relay is selected, try to load its existing schedule
     if (selectedRelays.length === 1) {
       const singleRelayId = selectedRelays[0];
       const existing = Object.entries(schedules).find(([, s]) => s.relayId === singleRelayId);
@@ -51,23 +56,14 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
         setDays(data.days || []);
         setIsEnabled(data.enabled);
       } else {
-        // Reset form if no schedule exists for the selected relay
         resetForm();
       }
     } else {
-      // If 0 or more than 1 relays are selected, reset the form
       resetForm();
     }
   }, [selectedRelays, schedules]);
 
   if (!isOpen) return null;
-  
-  const resetForm = () => {
-    setOnTime('07:00');
-    setOffTime('22:00');
-    setDays([]);
-    setIsEnabled(true);
-  };
   
   const handleToggleRelaySelection = (relayId) => {
     setSelectedRelays((prev) => 
@@ -86,11 +82,9 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
     }
     const scheduleData = { onTime, offTime, days, enabled: isEnabled };
     
-    // Loop through all selected relays and save the schedule for each one
     selectedRelays.forEach(relayId => {
       const existing = Object.entries(schedules).find(([, s]) => s.relayId === relayId);
       const existingScheduleId = existing ? existing[0] : null;
-      // Add the relayId to the data being saved
       onSave(existingScheduleId, { ...scheduleData, relayId: relayId });
     });
 
@@ -119,7 +113,6 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
         </h2>
 
         <div className="space-y-4">
-          {/* --- UPDATED RELAY SELECTOR --- */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-slate-300">Select Relays</label>
@@ -177,7 +170,6 @@ function ScheduleModal({ isOpen, onClose, onSave, onDelete, relays, schedules })
 
         <div className="mt-8 flex justify-between">
           <div>
-            {/* Only show delete button if exactly one relay is selected */}
             {selectedRelays.length === 1 && <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-semibold">Delete</button>}
           </div>
           <div className="space-x-4">
