@@ -1,6 +1,4 @@
 
-
-```markdown
 # Firebase Pico W - IoT Home Automation System
 
 A comprehensive IoT home automation solution using Raspberry Pi Pico W and Firebase Realtime Database for seamless remote control of electrical appliances through web and mobile interfaces.
@@ -42,7 +40,6 @@ A comprehensive IoT home automation solution using Raspberry Pi Pico W and Fireb
 
 ### 2. Hardware Configuration
 
-```
 // Pin definitions for relay control
 #define RELAY1_PIN 2
 #define RELAY2_PIN 3
