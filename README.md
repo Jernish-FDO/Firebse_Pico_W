@@ -46,13 +46,11 @@ A comprehensive IoT home automation solution using Raspberry Pi Pico W and Fireb
 #define RELAY3_PIN 4
 #define RELAY4_PIN 5
 // Add more pins as needed
-```
 
 ### 3. WiFi & Firebase Configuration
 
 Create a `secrets.h` file with your credentials:
 
-```
 // WiFi credentials
 const char* WIFI_SSID = "Your_WiFi_SSID";
 const char* WIFI_PASSWORD = "Your_WiFi_Password";
@@ -60,7 +58,6 @@ const char* WIFI_PASSWORD = "Your_WiFi_Password";
 // Firebase credentials
 const char* FIREBASE_HOST = "your-project-default-rtdb.firebaseio.com";
 const char* FIREBASE_AUTH = "your-firebase-auth-token";
-```
 
 ### 4. Upload Code to Pico W
 
