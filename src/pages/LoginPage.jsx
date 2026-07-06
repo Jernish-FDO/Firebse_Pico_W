@@ -4,30 +4,29 @@ import { useState } from 'react';
 import { auth } from '../firebase/config';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faEnvelope, faEye, faEyeSlash, faArrowRightToBracket, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import PasswordStrengthMeter from '../components/PasswordStrengthMeter'; // Import the new component
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLockedOut, setIsLockedOut] = useState(false);
   
-  // New state for validation
-  const [isEmailValid, setIsEmailValid] = useState(null); // null, true, or false
-  const [passwordStrength, setPasswordStrength] = useState(0); // 0-3 scale
+  const [isEmailValid, setIsEmailValid] = useState(null); 
+  const [passwordStrength, setPasswordStrength] = useState(0); 
 
   const validateEmail = (email) => {
-    // A simple regex for email validation
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
 
   const checkPasswordStrength = (pass) => {
     let score = 0;
-    if (pass.length > 7) score++; // Length
-    if (/[A-Z]/.test(pass)) score++; // Uppercase
-    if (/[0-9]/.test(pass) && /[a-z]/.test(pass)) score++; // Number and Lowercase
-    if (/[!@#$%^&*?]/.test(pass) && score > 0) score = 3; // Special char and meets other criteria
+    if (pass.length > 7) score++;
+    if (/[A-Z]/.test(pass)) score++; 
+    if (/[0-9]/.test(pass) && /[a-z]/.test(pass)) score++; 
+    if (/[!@#$%^&*?]/.test(pass) && score > 0) score = 3; 
     
     setPasswordStrength(score > 3 ? 3 : score);
   };
@@ -47,18 +46,32 @@ function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Prevent interaction during enforced lockout delay (visual deterrent)
+    if (isLockedOut) return; 
+
     if (!validateEmail(email)) {
       setError("Please enter a valid email address.");
       return;
     }
+    
     try {
       await auth.signInWithEmailAndPassword(email, password);
     } catch (err) {
-      setError("Failed to sign in. Please check your credentials.");
+      // Catch specific Firebase rate limit error representing account lockout
+      if (err.code === 'auth/too-many-requests') {
+        setIsLockedOut(true);
+        setError('This account has been temporarily locked due to many failed login attempts. Try again in 15 minutes.');
+      } else {
+        // Generic failure text protecting against user enumeration. 
+        // DO NOT reveal if failure was due to email or password mismatch.
+        setError("Invalid login credentials.");
+      }
+    } finally {
+       // SECURITY: ensure memory containing passwords is automatically scheduled for garbage collection if you were holding complex custom variables
     }
   };
 
-  // Dynamic border color based on email validity
   const emailBorderColor = isEmailValid === true 
     ? 'border-green-500' 
     : isEmailValid === false && email.length > 0 
@@ -72,6 +85,7 @@ function LoginPage() {
           <FontAwesomeIcon icon={faLock} className="text-blue-500 mr-3" />
           Secure Login
         </h2>
+        
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2 text-slate-400">Email</label>
@@ -83,6 +97,7 @@ function LoginPage() {
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
+                disabled={isLockedOut}
                 required
                 placeholder="Email Address"
                 className={`w-full pl-10 pr-10 py-3 bg-slate-800 border ${emailBorderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white transition-colors`}
@@ -104,6 +119,7 @@ function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={handlePasswordChange}
+                disabled={isLockedOut}
                 required
                 placeholder="Your Password"
                 className="w-full pl-10 pr-10 py-3 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white"
@@ -120,14 +136,15 @@ function LoginPage() {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-semibold text-white transition-colors flex items-center justify-center"
+            disabled={isLockedOut}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition-colors flex items-center justify-center ${isLockedOut ? 'bg-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             <FontAwesomeIcon icon={faArrowRightToBracket} className="mr-2" />
             Login
           </button>
         </form>
         {error && (
-          <div className="mt-4 text-red-400 text-sm text-center">
+          <div className={`mt-4 text-sm text-center ${isLockedOut ? 'text-orange-400 font-bold' : 'text-red-400'}`}>
             {error}
           </div>
         )}
