@@ -30,7 +30,7 @@ function CountdownTimer({ expiryTimestamp }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [expiryTimestamp]);
+  }, [expiryTimestamp, calculateTimeLeft]);
 
   return (
     <div className="flex items-center space-x-2 text-sm text-blue-400 font-medium animate-pulse">

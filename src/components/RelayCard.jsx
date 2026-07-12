@@ -18,27 +18,26 @@ function RelayCard({ id, name, relayId, status, lastChanged, timer_off_at, onTog
   // The local formatTimestamp function is no longer needed.
 
   return (
-    <div className="bg-slate-700 rounded-lg p-4 flex flex-col space-y-3 shadow-md">
+    <div className="bg-slate-800 rounded-2xl p-5 flex flex-col space-y-4 shadow-sm border border-slate-700/50 transition-all hover:border-slate-500 hover:shadow-md">
       <div className="flex justify-between items-center">
-        <h3 className="font-bold text-lg">{name}</h3>
-        <span className="text-xs font-mono text-slate-400">{relayId.replace('_', ' ').toUpperCase()}</span>
+        <h3 className="font-semibold text-slate-100 text-lg tracking-tight">{name}</h3>
+        <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-2 py-1 bg-slate-900 rounded-md">{relayId.replace('_', ' ')}</span>
       </div>
 
       <div className="flex justify-between items-center">
-        <div className={`flex items-center space-x-2 font-semibold ${isOn ? 'text-green-400' : 'text-slate-400'}`}>
-          <FontAwesomeIcon icon={faPowerOff} />
-          <span>{isOn ? 'ON' : 'OFF'}</span>
+        <div className={`flex items-center space-x-2 font-medium ${isOn ? 'text-green-400' : 'text-slate-500'}`}>
+          <FontAwesomeIcon icon={faPowerOff} size="sm" />
+          <span className="text-sm">{isOn ? 'Active' : 'Inactive'}</span>
         </div>
         <ToggleSwitch isOn={isOn} onToggle={() => onToggle(id, status)} />
       </div>
 
-      <div>
+      <div className="pt-2 border-t border-slate-700/50">
         {isTimerSet ? (
           <CountdownTimer expiryTimestamp={timer_off_at} />
         ) : (
-          <p className="text-xs text-slate-400">
-            {/* Use the new helper function here */}
-            Last changed: {formatAs12Hour(lastChanged)}
+          <p className="text-[11px] text-slate-500 font-medium tracking-wide">
+            Last active: {formatAs12Hour(lastChanged)}
           </p>
         )}
       </div>

@@ -10,6 +10,7 @@ export default {
     extend: {},
   },
   plugins: [
-    require('tailwind-scrollbar'), // <-- This line is correct
+    // eslint-disable-next-line no-undef
+    require('tailwind-scrollbar'), 
   ],
 }

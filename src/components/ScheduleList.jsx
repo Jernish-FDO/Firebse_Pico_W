@@ -1,7 +1,7 @@
 // --- FILE: src/components/ScheduleList.jsx ---
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarCheck, faPenToSquare } from '@fortawesome/free-solid-svg-icons';
+import { faPenToSquare } from '@fortawesome/free-solid-svg-icons';
 import { formatAs12Hour } from '../utils/formatTime';
 
 // --- THIS IS THE CORRECTED COMPONENT DEFINITION ---

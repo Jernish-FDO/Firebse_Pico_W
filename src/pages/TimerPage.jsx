@@ -4,7 +4,7 @@ import { useState } from 'react';
 // We no longer need useNavigate, so it's removed from the import
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlay } from '@fortawesome/free-solid-svg-icons';
 import ActiveTimers from '../components/ActiveTimers';
 
 function TimerPage({ relays, onSave }) {
