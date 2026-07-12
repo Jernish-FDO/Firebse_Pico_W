@@ -18,10 +18,10 @@ function RelayCard({ id, name, relayId, status, lastChanged, timer_off_at, onTog
   // The local formatTimestamp function is no longer needed.
 
   return (
-    <div className="bg-slate-800 rounded-2xl p-5 flex flex-col space-y-4 shadow-sm border border-slate-700/50 transition-all hover:border-slate-500 hover:shadow-md">
+    <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl p-6 flex flex-col space-y-4 shadow-lg border border-slate-700/50 transition-all duration-300 hover:border-slate-500 hover:shadow-xl hover:-translate-y-1">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-slate-100 text-lg tracking-tight">{name}</h3>
-        <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-2 py-1 bg-slate-900 rounded-md">{relayId.replace('_', ' ')}</span>
+        <h3 className="font-semibold text-slate-50 text-xl tracking-tight">{name}</h3>
+        <span className="text-[10px] font-extrabold tracking-widest text-indigo-400 uppercase px-3 py-1 bg-slate-900/50 rounded-full">{relayId.replace('_', ' ')}</span>
       </div>
 
       <div className="flex justify-between items-center">

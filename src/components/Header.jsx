@@ -12,28 +12,28 @@ function Header({ onLogout }) {
   const activeLinkStyle = { color: '#3b82f6' };
 
   return (
-    <nav className="bg-slate-950/80 backdrop-blur-md shadow-sm border-b border-slate-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-              <FontAwesomeIcon icon={faHome} className="text-white" />
+    <nav className="bg-slate-950/60 backdrop-blur-xl shadow-2xl border-b border-white/5 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <FontAwesomeIcon icon={faHome} className="text-white text-lg" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight text-white">SmartHome</h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-white">SmartHome</h1>
           </Link>
-          <div className="hidden md:flex items-center space-x-6">
-            <NavLink to="/timer" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Timers</NavLink>
-            <NavLink to="/schedules" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Schedules</NavLink>
-            <span className="text-xs flex items-center gap-2 font-medium text-green-400 bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20">
+          <div className="hidden md:flex items-center space-x-8">
+            <NavLink to="/timer" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="text-sm font-semibold text-slate-300 hover:text-white transition-all hover:scale-105">Timers</NavLink>
+            <NavLink to="/schedules" style={({ isActive }) => isActive ? activeLinkStyle : undefined} className="text-sm font-semibold text-slate-300 hover:text-white transition-all hover:scale-105">Schedules</NavLink>
+            <span className="text-[11px] flex items-center gap-2 font-bold text-emerald-400 bg-emerald-400/10 px-4 py-1.5 rounded-full border border-emerald-400/20">
                <span className="relative flex h-2 w-2">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                </span>
-               Connected
+               System Online
             </span>
-            <button onClick={onLogout} className="text-sm text-slate-400 hover:text-red-400 font-medium transition-colors">Logout</button>
+            <button onClick={onLogout} className="text-sm text-slate-500 hover:text-rose-400 font-semibold transition-colors">Logout</button>
           </div>
-          <div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><FontAwesomeIcon icon={isMenuOpen ? faTimes : faBars} className="h-5 w-5" /></button></div>
+          <div className="md:hidden"><button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"><FontAwesomeIcon icon={isMenuOpen ? faTimes : faBars} className="h-5 w-5" /></button></div>
         </div>
       </div>
       <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'} bg-slate-900 border-b border-slate-800`}>
